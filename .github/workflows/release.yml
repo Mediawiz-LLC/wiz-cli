@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Create tarball
+        run: |
+          git archive --format=tar.gz \
+            --prefix=wiz-cli-${{ steps.version.outputs.VERSION }}/ \
+            ${{ steps.version.outputs.VERSION }} \
+            -o wiz-cli-${{ steps.version.outputs.VERSION }}.tar.gz
+
+      - name: Compute SHA256
+        id: sha
+        run: |
+          SHA=$(sha256sum wiz-cli-${{ steps.version.outputs.VERSION }}.tar.gz | awk '{print $1}')
+          echo "SHA256=$SHA" >> $GITHUB_OUTPUT
+          echo "SHA256: $SHA"
+
+      - name: Create GitHub Release with tarball artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: wiz-cli ${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Install
+
+            ```bash
+            brew install Mediawiz-LLC/wiz-cli/wiz-cli
+            ```
+
+            ## SHA256
+            `${{ steps.sha.outputs.SHA256 }}`
+          files: wiz-cli-${{ steps.version.outputs.VERSION }}.tar.gz
+
+      - name: Update Homebrew formula with new URL and SHA256
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          SHA=${{ steps.sha.outputs.SHA256 }}
+          TARBALL_URL="https://github.com/Mediawiz-LLC/wiz-cli/archive/refs/tags/${VERSION}.tar.gz"
+
+          # Clone the tap repo
+          git clone https://x-access-token:${{ secrets.HOMEBREW_TAP_TOKEN }}@github.com/Mediawiz-LLC/homebrew-wiz-cli.git tap
+
+          cd tap
+          git config user.name "wiz-cli"
+          git config user.email "wiz-cli@mediawiz.com"
+
+          # Update url and sha256 in formula
+          sed -i "s|url \".*\"|url \"${TARBALL_URL}\"|" Formula/wiz-cli.rb
+          sed -i "s|sha256 \".*\"|sha256 \"${SHA}\"|" Formula/wiz-cli.rb
+          sed -i "s|version \".*\"|version \"${VERSION#v}\"|" Formula/wiz-cli.rb
+
+          git add Formula/wiz-cli.rb
+          git diff --cached --quiet || git commit -m "chore: update formula for ${VERSION} [skip ci]"
+          git push origin edge
