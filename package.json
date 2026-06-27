@@ -1,6 +1,6 @@
 {
   "name": "wiz-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MediaWiz developer CLI \u2014 manage products, branches, builds, and deployments",
   "bin": {
     "wiz": "./bin/wiz.js"
