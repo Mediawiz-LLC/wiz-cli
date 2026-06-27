@@ -1,7 +1,7 @@
 {
   "name": "wiz-cli",
   "version": "0.1.0",
-  "description": "MediaWiz developer CLI — manage products, branches, builds, and deployments",
+  "description": "MediaWiz developer CLI \u2014 manage products, branches, builds, and deployments",
   "bin": {
     "wiz": "./bin/wiz.js"
   },
@@ -24,5 +24,6 @@
     "type": "git",
     "url": "https://github.com/mediawiz/wiz-cli.git"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "packageManager": "yarn@1.22.22"
 }
